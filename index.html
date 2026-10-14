@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgendaPro - Escala Inteligente 12x36</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar and smooth transitions */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .transition-all-custom {
+            transition: all 0.2s ease-in-out;
+        }
+
+        /* Print styles optimization */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-size: 12pt;
+            }
+            header, .no-print, button, .print-hidden {
+                display: none !important;
+            }
+            main {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+            }
+            .print-container {
+                box-shadow: none !important;
+                border: none !important;
+                width: 100% !important;
+            }
+            .print-full-width {
+                grid-column: span 4 !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between">
+
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20 shadow-xs no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-indigo-100 flex items-center justify-center">
+                    <i class="fa-solid fa-calendar-days text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-slate-900 tracking-tight">AgendaPro 12x36</h1>
+                    <p class="text-xs text-slate-500">Controle Inteligente de Turnos e Escalas</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-2">
+                <!-- Edit Mode Toggle -->
+                <button id="editModeBtn" onclick="toggleEditMode()" class="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium text-sm rounded-lg transition-all-custom flex items-center gap-2 border border-amber-200">
+                    <i class="fa-solid fa-lock" id="editModeIcon"></i> <span id="editModeText">Modo Edição: Desativado</span>
+                </button>
+                <!-- Scale Generator Button -->
+                <button onclick="openScaleModal()" class="px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium text-sm rounded-lg transition-all-custom flex items-center gap-2 border border-indigo-200">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Gerar Escala 12x36
+                </button>
+                <!-- Print Button -->
+                <button onclick="window.print()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-lg transition-all-custom flex items-center gap-2" title="Imprimir Calendário">
+                    <i class="fa-solid fa-print"></i> Imprimir
+                </button>
+                <button onclick="goToToday()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-sm rounded-lg transition-all-custom" title="Ir para Hoje">
+                    Hoje
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-grow grid grid-cols-1 lg:grid-cols-4 gap-8 print-full-width">
+        
+        <!-- Calendar Grid & Navigation (3 columns) -->
+        <div class="lg:col-span-3 space-y-6 print-full-width">
+            
+            <!-- Month Control & Stats Bar -->
+            <div class="bg-white rounded-2xl p-5 shadow-xs border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4 print-container">
+                <div class="flex items-center space-x-4">
+                    <h2 id="currentMonthYear" class="text-2xl font-bold text-slate-900 capitalize min-w-[220px]">Carregando...</h2>
+                    <div class="flex items-center bg-slate-100 rounded-lg p-1 border border-slate-200 no-print">
+                        <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-md text-slate-600 hover:text-indigo-600 transition-all-custom" aria-label="Mês Anterior">
+                            <i class="fa-solid fa-chevron-left text-sm"></i>
+                        </button>
+                        <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-md text-slate-600 hover:text-indigo-600 transition-all-custom" aria-label="Próximo Mês">
+                            <i class="fa-solid fa-chevron-right text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Legend / Stats Pills -->
+                <div class="flex flex-wrap items-center gap-2 text-xs font-medium">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Trabalho: <span id="statTrabalho" class="font-bold">0</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                        <span class="w-2 h-2 rounded-full bg-amber-500"></span> Folga: <span id="statFolga" class="font-bold">0</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                        <span class="w-2 h-2 rounded-full bg-sky-500"></span> Férias: <span id="statFerias" class="font-bold">0</span>
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                        <span class="w-2 h-2 rounded-full bg-purple-500"></span> Plantão: <span id="statPlantao" class="font-bold">0</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Calendar Box -->
+            <div class="bg-white rounded-2xl shadow-xs border border-slate-300 overflow-hidden print-container">
+                <!-- Days of the week header -->
+                <div class="grid grid-cols-7 bg-slate-100 border-b-2 border-slate-300 text-center py-3 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <div>Dom</div>
+                    <div>Seg</div>
+                    <div>Ter</div>
+                    <div>Qua</div>
+                    <div>Qui</div>
+                    <div>Sex</div>
+                    <div>Sáb</div>
+                </div>
+                <!-- Days Matrix -->
+                <div id="calendarGrid" class="grid grid-cols-7 border-t border-l border-slate-300 bg-white">
+                    <!-- Javascript will inject days here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right 1 column: Sidebar / Info Panel (Hidden on print) -->
+        <div class="lg:col-span-1 space-y-6 no-print">
+            <div class="bg-white rounded-2xl p-6 shadow-xs border border-slate-200">
+                <h3 class="font-bold text-slate-900 text-base mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-indigo-600"></i> Como Funciona
+                </h3>
+                <ul class="space-y-3 text-xs text-slate-600 leading-relaxed">
+                    <li class="flex items-start gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <span>Ative o <strong>Modo Edição</strong> no topo para poder configurar os dias ao clicar neles.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <span>Use o <strong>Gerador de Escala 12x36</strong> para preencher automaticamente os meses seguintes com base no seu dia de trabalho inicial.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="bg-indigo-100 text-indigo-700 font-bold rounded-full w-4 h-4 flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <span>Clique em <strong>Imprimir</strong> para gerar um documento A4 limpo sem os botões da interface.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-gradient-to-br from-indigo-900 to-slate-900 text-white rounded-2xl p-6 shadow-md relative overflow-hidden">
+                <div class="absolute -right-4 -bottom-4 opacity-10 text-8xl">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <h4 class="font-bold text-base mb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-amber-400"></i> Salvamento Automático
+                </h4>
+                <p class="text-xs text-indigo-200 leading-relaxed">
+                    Suas escalas e notas ficam salvas de forma segura no armazenamento local do seu navegador.
+                </p>
+                <button onclick="clearMonthData()" class="mt-4 px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 rounded-lg text-xs font-semibold transition-all-custom border border-rose-500/30 w-full">
+                    <i class="fa-solid fa-trash-can mr-1"></i> Limpar Mês Atual
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: Day Edit (Opened when Edit Mode is ON) -->
+    <div id="dayModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 transform transition-all">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <div>
+                    <h3 id="modalDateTitle" class="font-bold text-slate-900 text-lg">Configurar Dia</h3>
+                    <p id="modalDateSubtitle" class="text-xs text-slate-500">Selecione o status e adicione observações</p>
+                </div>
+                <button onclick="closeDayModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all-custom">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Status do Turno</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="btnStatus-Trabalho" onclick="modalSetStatus('Trabalho')" class="status-btn flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all-custom bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100">
+                            <i class="fa-solid fa-briefcase"></i> Trabalho (12h)
+                        </button>
+                        <button type="button" id="btnStatus-Folga" onclick="modalSetStatus('Folga')" class="status-btn flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all-custom bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100">
+                            <i class="fa-solid fa-couch"></i> Folga (36h)
+                        </button>
+                        <button type="button" id="btnStatus-Férias" onclick="modalSetStatus('Férias')" class="status-btn flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all-custom bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100">
+                            <i class="fa-solid fa-umbrella-beach"></i> Férias
+                        </button>
+                        <button type="button" id="btnStatus-Plantão" onclick="modalSetStatus('Plantão')" class="status-btn flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all-custom bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100">
+                            <i class="fa-solid fa-hospital"></i> Plantão
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" id="btnStatus-None" onclick="modalSetStatus('')" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-medium transition-all-custom">
+                            <i class="fa-solid fa-xmark mr-1"></i> Remover Status
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Observação / Anotação</label>
+                    <textarea id="modalNoteInput" rows="3" placeholder="Ex: Turno diurno, horário especial..." class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-slate-50"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button onclick="closeDayModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all-custom">
+                        Cancelar
+                    </button>
+                    <button onclick="saveDayModal()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-100 transition-all-custom">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Scale 12x36 Generator -->
+    <div id="scaleModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+                <div>
+                    <h3 class="font-bold text-slate-900 text-lg">Gerador de Escala 12x36</h3>
+                    <p class="text-xs text-slate-500">Trabalha 1 dia e folga no dia seguinte sequencialmente</p>
+                </div>
+                <button onclick="closeScaleModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-all-custom">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Data Inicial de Trabalho</label>
+                    <input type="date" id="scaleStartDate" class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                    <p class="text-[11px] text-slate-500 mt-1">Neste dia você trabalhará 12h. A partir dele, a escala alterna automaticamente: Trabalho ➔ Folga ➔ Trabalho ➔ Folga...</p>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1.5">Período de Geração</label>
+                    <select id="scaleDuration" class="w-full p-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-slate-50">
+                        <option value="30">Próximos 30 dias</option>
+                        <option value="60" selected>Próximos 60 dias (2 meses)</option>
+                        <option value="90">Próximos 90 dias (3 meses)</option>
+                        <option value="180">Próximos 180 dias (6 meses)</option>
+                    </select>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+                    <span>Atenção: Isso preencherá/sobrescreverá os dias no intervalo selecionado com o padrão 12x36.</span>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button onclick="closeScaleModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition-all-custom">
+                        Cancelar
+                    </button>
+                    <button onclick="generateScale12x36()" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-indigo-100 transition-all-custom">
+                        Gerar Escala
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto text-center text-xs text-slate-400 no-print">
+        <p>AgendaPro &copy; 2026 - Controle Inteligente de Turnos e Folgas</p>
+    </footer>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // State management variables
+        let currentDate = new Date();
+        let editMode = false;
+        let activeModalDateKey = null;
+        let tempModalStatus = '';
+        let calendarData = JSON.parse(localStorage.getItem('agendapro_data_v2')) || {};
+
+        // Status configurations
+        const statusConfig = {
+            'Trabalho': { label: 'Trabalho', bg: 'bg-emerald-500', text: 'text-emerald-700', bgLight: 'bg-emerald-50', border: 'border-emerald-200', icon: 'fa-briefcase' },
+            'Folga': { label: 'Folga', bg: 'bg-amber-500', text: 'text-amber-700', bgLight: 'bg-amber-50', border: 'border-amber-200', icon: 'fa-couch' },
+            'Férias': { label: 'Férias', bg: 'bg-sky-500', text: 'text-sky-700', bgLight: 'bg-sky-50', border: 'border-sky-200', icon: 'fa-umbrella-beach' },
+            'Plantão': { label: 'Plantão', bg: 'bg-purple-500', text: 'text-purple-700', bgLight: 'bg-purple-50', border: 'border-purple-200', icon: 'fa-hospital' }
+        };
+
+        const monthNames = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCalendar();
+            document.getElementById('scaleStartDate').value = formatDateKey(new Date());
+        });
+
+        // Format Date to YYYY-MM-DD
+        function formatDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Toggle Edit Mode
+        function toggleEditMode() {
+            editMode = !editMode;
+            const btn = document.getElementById('editModeBtn');
+            const icon = document.getElementById('editModeIcon');
+            const text = document.getElementById('editModeText');
+
+            if (editMode) {
+                btn.className = "px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-all-custom flex items-center gap-2 shadow-sm";
+                icon.className = "fa-solid fa-lock-open";
+                text.textContent = "Modo Edição: Ativado";
+                showToast("Modo Edição ativado. Clique em qualquer dia para abrir o painel.", "info");
+            } else {
+                btn.className = "px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 font-medium text-sm rounded-lg transition-all-custom flex items-center gap-2 border border-amber-200";
+                icon.className = "fa-solid fa-lock";
+                text.textContent = "Modo Edição: Desativado";
+                showToast("Modo Edição desativado.", "info");
+            }
+            renderCalendar();
+        }
+
+        // Change Month
+        function changeMonth(direction) {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            renderCalendar();
+        }
+
+        // Go to Today
+        function goToToday() {
+            currentDate = new Date();
+            renderCalendar();
+        }
+
+        // Render Calendar Grid
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            document.getElementById('currentMonthYear').textContent = `${monthNames[month]} ${year}`;
+
+            const gridEl = document.getElementById('calendarGrid');
+            gridEl.innerHTML = '';
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const prevTotalDays = new Date(year, month, 0).getDate();
+
+            let daysRenderedCount = 0;
+
+            // 1. Previous month trailing days
+            for (let i = firstDayIndex - 1; i >= 0; i--) {
+                const dayNum = prevTotalDays - i;
+                const prevDate = new Date(year, month - 1, dayNum);
+                const dateKey = formatDateKey(prevDate);
+                createDayCell(gridEl, dateKey, dayNum, true);
+                daysRenderedCount++;
+            }
+
+            // 2. Current month days
+            for (let i = 1; i <= totalDays; i++) {
+                const currDate = new Date(year, month, i);
+                const dateKey = formatDateKey(currDate);
+                createDayCell(gridEl, dateKey, i, false);
+                daysRenderedCount++;
+            }
+
+            // 3. Next month leading days
+            let nextMonthDay = 1;
+            while (daysRenderedCount % 7 !== 0) {
+                const nextDate = new Date(year, month + 1, nextMonthDay);
+                const dateKey = formatDateKey(nextDate);
+                createDayCell(gridEl, dateKey, nextMonthDay, true);
+                nextMonthDay++;
+                daysRenderedCount++;
+            }
+
+            updateMonthlyStats();
+        }
+
+        // Create Day Cell (Com bordas físicas e números maiores)
+        function createDayCell(container, dateKey, dayNum, isOtherMonth) {
+            const cell = document.createElement('div');
+            cell.className = `bg-white min-h-[100px] sm:min-h-[125px] p-2.5 flex flex-col justify-between transition-all-custom relative group border-r border-b border-slate-300`;
+            
+            if (editMode) {
+                cell.classList.add('cursor-pointer', 'hover:bg-indigo-50/40');
+            } else {
+                cell.classList.add('cursor-default');
+            }
+
+            if (isOtherMonth) {
+                cell.classList.add('opacity-40', 'bg-slate-50/50');
+            }
+
+            const isToday = formatDateKey(new Date()) === dateKey;
+            const dayData = calendarData[dateKey] || {};
+            const status = dayData.status || '';
+            const note = dayData.note || '';
+
+            let statusHtml = '';
+            if (status && statusConfig[status]) {
+                const cfg = statusConfig[status];
+                statusHtml = `
+                    <div class="mt-1 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1.5 ${cfg.bgLight} ${cfg.text} border ${cfg.border} truncate shadow-2xs">
+                        <i class="fa-solid ${cfg.icon} text-xs"></i>
+                        <span class="truncate">${status}</span>
+                    </div>
+                `;
+            }
+
+            let noteHtml = note ? `<div class="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-indigo-500" title="Possui observação"></div>` : '';
+
+            cell.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold ${isToday ? 'bg-indigo-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow-xs' : 'text-slate-800'}">
+                        ${dayNum}
+                    </span>
+                    ${noteHtml}
+                </div>
+                <div class="flex-grow flex flex-col justify-end">
+                    ${statusHtml}
+                    ${note && !statusHtml ? `<div class="text-[11px] text-slate-500 italic truncate mt-1"><i class="fa-regular fa-note-sticky"></i> ${note}</div>` : ''}
+                </div>
+            `;
+
+            // Click action
+            cell.addEventListener('click', () => {
+                if (editMode) {
+                    openDayModal(dateKey);
+                } else {
+                    showToast("Ative o 'Modo Edição' no topo para alterar os dias.", "info");
+                }
+            });
+
+            container.appendChild(cell);
+        }
+
+        // Modal Day Management
+        function openDayModal(dateKey) {
+            activeModalDateKey = dateKey;
+            const dayData = calendarData[dateKey] || { status: '', note: '' };
+            tempModalStatus = dayData.status || '';
+
+            const [year, month, day] = dateKey.split('-');
+            document.getElementById('modalDateTitle').textContent = `${day} de ${monthNames[parseInt(month, 10) - 1]} de ${year}`;
+            document.getElementById('modalNoteInput').value = dayData.note || '';
+
+            highlightModalStatusButton(tempModalStatus);
+
+            document.getElementById('dayModal').classList.remove('hidden');
+        }
+
+        function closeDayModal() {
+            document.getElementById('dayModal').classList.add('hidden');
+            activeModalDateKey = null;
+        }
+
+        function modalSetStatus(status) {
+            tempModalStatus = status;
+            highlightModalStatusButton(status);
+        }
+
+        function highlightModalStatusButton(status) {
+            const buttons = document.querySelectorAll('.status-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-offset-2', 'ring-indigo-600', 'shadow-md');
+            });
+
+            if (status) {
+                const activeBtn = document.getElementById(`btnStatus-${status}`);
+                if (activeBtn) {
+                    activeBtn.classList.add('ring-2', 'ring-offset-2', 'ring-indigo-600', 'shadow-md');
+                }
+            }
+        }
+
+        function saveDayModal() {
+            if (!activeModalDateKey) return;
+            const note = document.getElementById('modalNoteInput').value;
+
+            if (!calendarData[activeModalDateKey]) calendarData[activeModalDateKey] = {};
+            calendarData[activeModalDateKey].status = tempModalStatus;
+            calendarData[activeModalDateKey].note = note;
+
+            saveData();
+            renderCalendar();
+            closeDayModal();
+            showToast('Dia atualizado com sucesso!', 'success');
+        }
+
+        // Scale 12x36 Generator Modal
+        function openScaleModal() {
+            document.getElementById('scaleModal').classList.remove('hidden');
+        }
+
+        function closeScaleModal() {
+            document.getElementById('scaleModal').classList.add('hidden');
+        }
+
+        function generateScale12x36() {
+            const startDateStr = document.getElementById('scaleStartDate').value;
+            const durationDays = parseInt(document.getElementById('scaleDuration').value, 10);
+
+            if (!startDateStr) {
+                showToast('Selecione uma data inicial válida.', 'info');
+                return;
+            }
+
+            const [year, month, day] = startDateStr.split('-').map(Number);
+            let currentIterDate = new Date(year, month - 1, day);
+            let isWorkingDay = true; 
+
+            for (let i = 0; i < durationDays; i++) {
+                const dKey = formatDateKey(currentIterDate);
+                if (!calendarData[dKey]) calendarData[dKey] = {};
+
+                calendarData[dKey].status = isWorkingDay ? 'Trabalho' : 'Folga';
+                isWorkingDay = !isWorkingDay;
+                currentIterDate.setDate(currentIterDate.getDate() + 1);
+            }
+
+            saveData();
+            renderCalendar();
+            closeScaleModal();
+            showToast(`Escala 12x36 gerada com sucesso para ${durationDays} dias!`, 'success');
+        }
+
+        // Save data to localStorage
+        function saveData() {
+            localStorage.setItem('agendapro_data_v2', JSON.stringify(calendarData));
+        }
+
+        // Monthly Stats Update
+        function updateMonthlyStats() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            let trabalho = 0;
+            let folga = 0;
+            let ferias = 0;
+            let plantao = 0;
+
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            for (let i = 1; i <= totalDays; i++) {
+                const dKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const data = calendarData[dKey];
+                if (data && data.status) {
+                    if (data.status === 'Trabalho') trabalho++;
+                    if (data.status === 'Folga') folga++;
+                    if (data.status === 'Férias') ferias++;
+                    if (data.status === 'Plantão') plantao++;
+                }
+            }
+
+            document.getElementById('statTrabalho').textContent = trabalho;
+            document.getElementById('statFolga').textContent = folga;
+            document.getElementById('statFerias').textContent = ferias;
+            document.getElementById('statPlantao').textContent = plantao;
+        }
+
+        // Clear Month Data
+        function clearMonthData() {
+            if (!confirm('Deseja realmente limpar todos os status e notas deste mês?')) return;
+
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 1; i <= totalDays; i++) {
+                const dKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                delete calendarData[dKey];
+            }
+
+            saveData();
+            renderCalendar();
+            showToast('Dados do mês limpos com sucesso.', 'info');
+        }
+
+        // Toast Notification System
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-900 text-white';
+            let icon = 'fa-circle-check text-emerald-400';
+            if (type === 'info') {
+                icon = 'fa-circle-info text-sky-400';
+            }
+
+            toast.className = `${bgClass} px-4 py-3 rounded-xl shadow-lg text-xs font-medium flex items-center gap-3 pointer-events-auto transition-all-custom translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${message}</span>`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 200);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
